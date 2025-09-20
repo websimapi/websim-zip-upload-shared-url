@@ -10,7 +10,7 @@ const finalUrlInput = document.getElementById('finalUrl');
 const copyBtn = document.getElementById('copyBtn');
 const mapList = document.getElementById('mapList');
 
-const BASE_SHARE = (window.baseUrl || window.location.origin);
+const BASE_SHARE = (window.baseUrl || 'https://websim.com');
 
 function setStatus(msg, isError = false){
   statusEl.textContent = msg;
@@ -91,6 +91,14 @@ function getListOnce(collection){
 
 createBtn.addEventListener('click', async ()=>{
   setStatus('');
+  if (typeof WebsimSocket === 'undefined') {
+    setStatus('Error: Realtime service not available. Please refresh and try again.', true);
+    return;
+  }
+  if (!window.websim || typeof window.websim.upload !== 'function') {
+    setStatus('Error: Upload service not available. Please refresh and try again.', true);
+    return;
+  }
   const file = fileInput.files && fileInput.files[0];
   if(!file){
     setStatus('Please choose a .zip file to upload', true);
@@ -151,8 +159,11 @@ copyBtn.addEventListener('click', ()=> {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('url');
   if(!id) {
-    // not a direct download request; initialize UI
     loadMyMappings();
+    return;
+  }
+  if (typeof WebsimSocket === 'undefined') {
+    setStatus('Error: Realtime service not available to resolve the link. Please refresh and try again.', true);
     return;
   }
 
