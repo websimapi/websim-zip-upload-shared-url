@@ -10,7 +10,7 @@ const finalUrlInput = document.getElementById('finalUrl');
 const copyBtn = document.getElementById('copyBtn');
 const mapList = document.getElementById('mapList');
 
-const BASE_SHARE = (window.baseUrl || window.location.origin + window.location.pathname);
+const BASE_SHARE = (window.baseUrl || window.location.origin);
 
 function setStatus(msg, isError = false){
   statusEl.textContent = msg;
@@ -82,6 +82,13 @@ function validId(s){
   return /^[A-Za-z0-9_-]{3,48}$/.test(s);
 }
 
+// wait for first list emission
+function getListOnce(collection){
+  return new Promise((resolve)=>{
+    const unsub = collection.subscribe((list)=>{ unsub(); resolve(list || []); });
+  });
+}
+
 createBtn.addEventListener('click', async ()=>{
   setStatus('');
   const file = fileInput.files && fileInput.files[0];
@@ -103,8 +110,8 @@ createBtn.addEventListener('click', async ()=>{
   setStatus('Checking availability...');
   try{
     const room = new WebsimSocket();
-    // check uniqueness
-    const existing = room.collection('zip_map').filter({ custom_id: customId }).getList() || [];
+    // check uniqueness (wait for initial load)
+    const existing = await getListOnce(room.collection('zip_map').filter({ custom_id: customId }));
     if(existing.length){
       setStatus('That ID is already taken. Choose another.', true);
       createBtn.disabled = false;
@@ -152,7 +159,7 @@ copyBtn.addEventListener('click', ()=> {
   // attempt to find mapping and trigger download
   try{
     const room = new WebsimSocket();
-    const list = room.collection('zip_map').filter({ custom_id: id }).getList() || [];
+    const list = await getListOnce(room.collection('zip_map').filter({ custom_id: id }));
     if(!list.length){
       setStatus('No file mapped to that ID', true);
       return;
@@ -172,4 +179,3 @@ copyBtn.addEventListener('click', ()=> {
   }
 })();
 /* ...existing code... */
-
