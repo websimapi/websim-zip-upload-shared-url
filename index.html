@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ZIP Upload & Shared URL</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+
+  <!-- ...existing content... -->
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "dayjs": "https://cdn.jsdelivr.net/npm/dayjs@1.11.8/esm/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- ...existing content... -->
+  <main class="container">
+    <header>
+      <h1>Upload ZIP & create shareable url</h1>
+      <p class="muted">Upload a .zip, choose a short unique ID and get a link like: https://websim.com?url=ID</p>
+    </header>
+
+    <section class="uploader">
+      <label class="file-row">
+        <input id="fileInput" type="file" accept=".zip" />
+      </label>
+
+      <div class="form-row">
+        <input id="customId" placeholder="Enter unique id (alphanumeric, -, _)" maxlength="48" />
+        <button id="createBtn">Create Link</button>
+      </div>
+
+      <div id="status" aria-live="polite"></div>
+
+      <div id="generated" class="generated" hidden>
+        <p>Shareable link:</p>
+        <input id="finalUrl" readonly />
+        <button id="copyBtn">Copy</button>
+      </div>
+    </section>
+
+    <section class="mappings">
+      <h2>Your mappings</h2>
+      <ul id="mapList" class="map-list"></ul>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
+  <!-- ...existing content... -->
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
