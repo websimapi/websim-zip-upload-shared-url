@@ -11,6 +11,7 @@ const copyBtn = document.getElementById('copyBtn');
 const mapList = document.getElementById('mapList');
 
 const BASE_SHARE = (window.baseUrl || 'https://websim.com');
+const COLLECTION = 'zip_map_v2'; // new collection with case-insensitive uniqueness
 
 function setStatus(msg, isError = false){
   statusEl.textContent = msg;
@@ -21,11 +22,9 @@ async function loadMyMappings(){
   try{
     const room = new WebsimSocket();
     const currentUser = await window.websim.getCurrentUser();
-    // fetch records created by current user (collection returns newest-first)
-    const list = room.collection('zip_map').filter({ username: currentUser.username }).getList() || [];
+    const list = room.collection(COLLECTION).filter({ username: currentUser.username }).getList() || [];
     renderList(list);
-    // subscribe to live updates
-    room.collection('zip_map').filter({ username: currentUser.username }).subscribe(renderList);
+    room.collection(COLLECTION).filter({ username: currentUser.username }).subscribe(renderList);
   }catch(e){
     console.warn(e);
   }
@@ -60,7 +59,7 @@ function renderList(list){
     del.onclick = async ()=>{
       try{
         const room = new WebsimSocket();
-        await room.collection('zip_map').delete(rec.id);
+        await room.collection(COLLECTION).delete(rec.id);
       }catch(err){
         alert('Unable to delete: ' + err.message);
       }
@@ -109,6 +108,7 @@ createBtn.addEventListener('click', async ()=>{
     return;
   }
   const customId = sanitizeId(customIdInput.value);
+  const customIdLc = customId.toLowerCase();
   if(!validId(customId)){
     setStatus('ID must be 3–48 chars, letters, numbers, - or _', true);
     return;
@@ -118,8 +118,7 @@ createBtn.addEventListener('click', async ()=>{
   setStatus('Checking availability...');
   try{
     const room = new WebsimSocket();
-    // check uniqueness (wait for initial load)
-    const existing = await getListOnce(room.collection('zip_map').filter({ custom_id: customId }));
+    const existing = await getListOnce(room.collection(COLLECTION).filter({ custom_id_lc: customIdLc }));
     if(existing.length){
       setStatus('That ID is already taken. Choose another.', true);
       createBtn.disabled = false;
@@ -130,8 +129,9 @@ createBtn.addEventListener('click', async ()=>{
     const fileUrl = await window.websim.upload(file);
 
     setStatus('Saving mapping...');
-    const rec = await room.collection('zip_map').create({
+    const rec = await room.collection(COLLECTION).create({
       custom_id: customId,
+      custom_id_lc: customIdLc,
       file_url: fileUrl,
       file_name: file.name
     });
@@ -154,11 +154,15 @@ copyBtn.addEventListener('click', ()=> {
   if(finalUrlInput.value) navigator.clipboard.writeText(finalUrlInput.value);
 });
 
+customIdInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); createBtn.click(); }
+});
+
 // On page load: if ?url=ID present, look up and trigger download
 (async function handleIncoming(){
   const params = new URLSearchParams(window.location.search);
-  const id = params.get('url');
-  if(!id) {
+  const idRaw = params.get('url');
+  if(!idRaw) {
     loadMyMappings();
     return;
   }
@@ -166,16 +170,20 @@ copyBtn.addEventListener('click', ()=> {
     setStatus('Error: Realtime service not available to resolve the link. Please refresh and try again.', true);
     return;
   }
-
-  // attempt to find mapping and trigger download
   try{
+    const id = String(idRaw).trim();
+    const idLc = id.toLowerCase();
     const room = new WebsimSocket();
-    const list = await getListOnce(room.collection('zip_map').filter({ custom_id: id }));
+    // Prefer v2 (case-insensitive), fall back to legacy v1 if needed
+    let list = await getListOnce(room.collection(COLLECTION).filter({ custom_id_lc: idLc }));
+    if(!list.length){
+      list = await getListOnce(room.collection('zip_map').filter({ custom_id: id }));
+    }
     if(!list.length){
       setStatus('No file mapped to that ID', true);
       return;
     }
-    const rec = list[0]; // should be unique
+    const rec = list[0];
     // Trigger file download by creating anchor and click
     const a = document.createElement('a');
     a.href = rec.file_url;
